@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ShopCard } from '../components/ShopCard';
+import { useMall } from '../hooks/useMall';
+import { useTopPromotion } from '../hooks/useTopPromotion';
+import { PromotionalBanner } from '../components/PromotionalBanner';
 import { supabase } from '../lib/supabase';
 import { Search, Filter } from 'lucide-react';
 import type { Database } from '../types/database';
@@ -8,42 +11,44 @@ type Shop = Database['public']['Tables']['shops']['Row'];
 type Promotion = Database['public']['Tables']['promotions']['Row'];
 
 export function ShopList() {
+  const { currentMall, loading: mallLoading } = useMall();
+  const { topPromotion, loading: promoLoading } = useTopPromotion(currentMall?.id ?? null);
   const [shops, setShops] = useState<Shop[]>([]);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     async function fetchData() {
+      if (!currentMall) return;
+
       try {
-        // Fetch shops
-        const { data: shopsData, error: shopsError } = await supabase
+        // Fetch shops for current mall
+        const { data: shopsData } = await supabase
           .from('shops')
           .select('*')
+          .eq('mall_id', currentMall.id)
           .order('name');
 
-        if (shopsError) throw shopsError;
-        setShops(shopsData);
+        setShops(shopsData || []);
 
         // Fetch active promotions
-        const { data: promoData, error: promoError } = await supabase
+        const { data: promoData } = await supabase
           .from('promotions')
           .select('*')
           .gte('valid_until', new Date().toISOString());
 
-        if (promoError) throw promoError;
-        setPromotions(promoData);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to fetch data'));
+        setPromotions(promoData || []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     }
 
     fetchData();
-  }, []);
+  }, [currentMall]);
 
-  if (loading) {
+  if (loading || mallLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
@@ -51,18 +56,25 @@ export function ShopList() {
     );
   }
 
-  if (error) {
+  if (!currentMall) {
     return (
-      <div className="text-center text-red-600">
-        Failed to load shops. Please try again later.
+      <div className="text-center py-12">
+        <p className="text-gray-600">Please select a mall first</p>
       </div>
     );
   }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {topPromotion && !promoLoading && (
+        <PromotionalBanner promotion={topPromotion} />
+      )}
+
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Mall Shops</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Shops at {currentMall.name}</h1>
+          <p className="text-gray-600 mt-1">{currentMall.description}</p>
+        </div>
         <div className="flex space-x-4">
           <div className="relative">
             <input
