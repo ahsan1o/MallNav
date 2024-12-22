@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { MapPin } from 'lucide-react';
+import { PasswordInput } from '../../components/PasswordInput';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -20,7 +21,15 @@ export function Login() {
       setError('');
       setLoading(true);
       await signIn(email, password);
-      navigate(from, { replace: true });
+      
+      // Check if there was a selected mall before login
+      const selectedMallId = sessionStorage.getItem('selectedMallId');
+      if (selectedMallId) {
+        sessionStorage.removeItem('selectedMallId');
+        navigate('/shops');
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (err) {
       setError('Failed to sign in');
     } finally {
@@ -55,23 +64,21 @@ export function Login() {
                 name="email"
                 type="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-t-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div>
-              <label htmlFor="password" className="sr-only">Password</label>
-              <input
+              <PasswordInput
                 id="password"
                 name="password"
-                type="password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="rounded-b-md"
               />
             </div>
           </div>

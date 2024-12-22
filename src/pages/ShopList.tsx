@@ -1,54 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ShopCard } from '../components/ShopCard';
 import { useMall } from '../hooks/useMall';
+import { useMallShops } from '../hooks/useMallShops';
 import { useTopPromotion } from '../hooks/useTopPromotion';
 import { PromotionalBanner } from '../components/PromotionalBanner';
-import { supabase } from '../lib/supabase';
-import { Search, Filter } from 'lucide-react';
-import type { Database } from '../types/database';
-
-type Shop = Database['public']['Tables']['shops']['Row'];
-type Promotion = Database['public']['Tables']['promotions']['Row'];
+import { Search, Filter, Building2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export function ShopList() {
-  const { currentMall, loading: mallLoading } = useMall();
+  const { currentMall } = useMall();
+  const { shops, loading: shopsLoading, error } = useMallShops(currentMall?.id ?? null);
   const { topPromotion, loading: promoLoading } = useTopPromotion(currentMall?.id ?? null);
-  const [shops, setShops] = useState<Shop[]>([]);
-  const [promotions, setPromotions] = useState<Promotion[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    async function fetchData() {
-      if (!currentMall) return;
+  const filteredShops = shops.filter(shop => 
+    shop.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    shop.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-      try {
-        // Fetch shops for current mall
-        const { data: shopsData } = await supabase
-          .from('shops')
-          .select('*')
-          .eq('mall_id', currentMall.id)
-          .order('name');
+  if (!currentMall) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center">
+        <Building2 className="h-16 w-16 text-gray-400 mb-4" />
+        <h2 className="text-2xl font-semibold text-gray-700 mb-4">No Mall Selected</h2>
+        <p className="text-gray-500 mb-6">Please select a mall to view its shops</p>
+        <Link
+          to="/mall-selection"
+          className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors"
+        >
+          Select a Mall
+        </Link>
+      </div>
+    );
+  }
 
-        setShops(shopsData || []);
-
-        // Fetch active promotions
-        const { data: promoData } = await supabase
-          .from('promotions')
-          .select('*')
-          .gte('valid_until', new Date().toISOString());
-
-        setPromotions(promoData || []);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchData();
-  }, [currentMall]);
-
-  if (loading || mallLoading) {
+  if (shopsLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
@@ -56,10 +42,10 @@ export function ShopList() {
     );
   }
 
-  if (!currentMall) {
+  if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">Please select a mall first</p>
+        <p className="text-red-600">Error loading shops. Please try again later.</p>
       </div>
     );
   }
@@ -70,17 +56,19 @@ export function ShopList() {
         <PromotionalBanner promotion={topPromotion} />
       )}
 
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Shops at {currentMall.name}</h1>
           <p className="text-gray-600 mt-1">{currentMall.description}</p>
         </div>
-        <div className="flex space-x-4">
-          <div className="relative">
+        <div className="flex space-x-4 w-full md:w-auto">
+          <div className="relative flex-grow md:flex-grow-0">
             <input
               type="text"
               placeholder="Search shops..."
-              className="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full md:w-64 pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
             <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
           </div>
@@ -91,15 +79,22 @@ export function ShopList() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {shops.map((shop) => (
-          <ShopCard
-            key={shop.id}
-            shop={shop}
-            promotions={promotions.filter(p => p.shop_id === shop.id)}
-          />
-        ))}
-      </div>
+      {filteredShops.length === 0 ? (
+        <div className="text-center py-12">
+          <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500">No shops found</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredShops.map((shop) => (
+            <ShopCard
+              key={shop.id}
+              shop={shop}
+              promotions={(shop as any).promotions}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

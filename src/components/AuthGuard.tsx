@@ -26,11 +26,11 @@ export function AuthGuard({ children, adminOnly = false }: AuthGuardProps) {
         const { data, error } = await supabase
           .from('admin_users')
           .select('*')
-          .eq('user_id', user.id)
-          .single();
+          .eq('user_id', user.id);
 
         if (error) throw error;
-        setIsAdmin(!!data);
+        // Check if there are any rows returned
+        setIsAdmin(data && data.length > 0);
       } catch (error) {
         console.error('Error checking admin status:', error);
         setIsAdmin(false);
@@ -51,6 +51,7 @@ export function AuthGuard({ children, adminOnly = false }: AuthGuardProps) {
   }
 
   if (!user) {
+    // Save the attempted URL to redirect back after login
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

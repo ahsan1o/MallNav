@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { Map } from '../components/Map';
 import { Map3D } from '../components/Map3D';
 import { useShops } from '../hooks/useShops';
+import { useMall } from '../hooks/useMall';
 
 export function MallMap() {
   const [view, setView] = useState<'2d' | '3d'>('2d');
   const { shops, loading } = useShops();
+  const { currentMall } = useMall();
+
+  if (!currentMall) {
+    return <Navigate to="/mall-selection" replace />;
+  }
 
   if (loading) {
     return (
@@ -20,7 +27,9 @@ export function MallMap() {
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
         <div className="p-4 border-b">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">Mall Map</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {currentMall.name} - Mall Map
+            </h1>
             <div className="flex space-x-2">
               <button
                 onClick={() => setView('2d')}

@@ -3,18 +3,18 @@ import { MapPin, Tag } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Database } from '../types/database';
 
-type Shop = Database['public']['Tables']['shops']['Row'];
-type Promotion = Database['public']['Tables']['promotions']['Row'];
+type Shop = Database['public']['Tables']['shops']['Row'] & {
+  promotions?: Database['public']['Tables']['promotions']['Row'][];
+};
 
 interface ShopCardProps {
   shop: Shop;
-  promotions?: Promotion[];
 }
 
-export function ShopCard({ shop, promotions = [] }: ShopCardProps) {
-  const activePromotions = promotions.filter(
+export function ShopCard({ shop }: ShopCardProps) {
+  const activePromotions = shop.promotions?.filter(
     p => new Date(p.valid_until) > new Date()
-  );
+  ) || [];
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">

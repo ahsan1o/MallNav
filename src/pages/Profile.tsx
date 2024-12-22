@@ -1,38 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
 import { User, Bell, Heart, Settings } from 'lucide-react';
-import type { Database } from '../types/database';
-
-type UserPreferences = Database['public']['Tables']['user_preferences']['Row'];
+import { useUserPreferences } from '../hooks/useUserPreferences';
 
 export function Profile() {
   const { user, signOut } = useAuth();
-  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchPreferences() {
-      if (!user) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('user_preferences')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        if (error) throw error;
-        setPreferences(data);
-      } catch (error) {
-        console.error('Error fetching preferences:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchPreferences();
-  }, [user]);
+  const { preferences, loading, updatePreferences } = useUserPreferences();
 
   const handleSignOut = async () => {
     try {
@@ -77,7 +50,14 @@ export function Profile() {
                       type="checkbox"
                       checked={enabled}
                       className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                      onChange={() => {/* Add notification toggle handler */}}
+                      onChange={async () => {
+                        await updatePreferences({
+                          notification_settings: {
+                            ...preferences.notification_settings,
+                            [key]: !enabled
+                          }
+                        });
+                      }}
                     />
                     <label htmlFor={key} className="ml-3 text-sm text-gray-700 capitalize">
                       {key.replace('_', ' ')} notifications

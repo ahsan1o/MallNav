@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { MapPin, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { PasswordInput } from '../../components/PasswordInput';
+import { PasswordStrengthIndicator } from '../../components/PasswordStrengthIndicator';
 
 export function SignUp() {
   const [firstName, setFirstName] = useState('');
@@ -21,23 +23,27 @@ export function SignUp() {
       setLoading(true);
       
       // Sign up the user
-      await signUp(email, password);
-      
-      // Create user profile
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .insert([
-          {
-            user_id: (await supabase.auth.getUser()).data.user?.id,
-            first_name: firstName,
-            last_name: lastName
-          }
-        ]);
+      const { data: authData, error: signUpError } = await signUp(email, password);
+      if (signUpError) throw signUpError;
 
-      if (profileError) throw profileError;
+      if (authData.user) {
+        // Create user profile
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .insert([
+            {
+              user_id: authData.user.id,
+              first_name: firstName,
+              last_name: lastName
+            }
+          ]);
+
+        if (profileError) throw profileError;
+      }
       
       navigate('/mall-selection');
     } catch (err) {
+      console.error('Signup error:', err);
       setError('Failed to create an account');
     } finally {
       setLoading(false);
@@ -61,7 +67,7 @@ export function SignUp() {
               <MapPin className="h-12 w-12 text-indigo-600" />
             </div>
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-              Create your Enigma Bird account
+              Create your account
             </h2>
           </div>
           
@@ -113,19 +119,19 @@ export function SignUp() {
                 />
               </div>
               <div>
-                <label htmlFor="password" className="sr-only">Password</label>
-                <input
+                <PasswordInput
                   id="password"
                   name="password"
-                  type="password"
                   required
-                  className="appearance-none rounded-b-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  className="rounded-b-md"
                 />
               </div>
             </div>
+
+            <PasswordStrengthIndicator password={password} />
 
             <div>
               <button

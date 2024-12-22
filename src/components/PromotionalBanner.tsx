@@ -8,10 +8,12 @@ type Promotion = Database['public']['Tables']['promotions']['Row'] & {
 };
 
 interface PromotionalBannerProps {
-  promotion: Promotion;
+  promotion: Promotion | null;
 }
 
 export function PromotionalBanner({ promotion }: PromotionalBannerProps) {
+  if (!promotion?.shop) return null;
+
   return (
     <Link
       to={`/shops/${promotion.shop.id}`}
