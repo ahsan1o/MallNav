@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { Shield } from 'lucide-react';
+import { Shield, AlertCircle } from 'lucide-react';
 import { PasswordInput } from '../../components/PasswordInput';
 
 export function AdminLogin() {
@@ -22,22 +22,33 @@ export function AdminLogin() {
         password
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        if (authError.message.includes('Invalid login credentials')) {
+          throw new Error('Invalid email or password. Please try again.');
+        } else {
+          throw new Error('Failed to sign in. Please try again later.');
+        }
+      }
+
+      if (!user) {
+        throw new Error('No user found');
+      }
 
       // Check if user is an admin
       const { data: adminData, error: adminError } = await supabase
         .from('admin_users')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .single();
 
       if (adminError || !adminData) {
-        throw new Error('Unauthorized access');
+        throw new Error('You do not have admin privileges. Please contact support if you believe this is an error.');
       }
 
       navigate('/admin/dashboard');
     } catch (err) {
-      setError('Invalid credentials or unauthorized access');
+      console.error('Admin login error:', err);
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }
@@ -53,11 +64,23 @@ export function AdminLogin() {
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Admin Portal
           </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Sign in to access the admin dashboard
+          </p>
         </div>
         
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
-            {error}
+          <div className="rounded-md bg-red-50 p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-5 w-5 text-red-400" aria-hidden="true" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">
+                  {error}
+                </h3>
+              </div>
+            </div>
           </div>
         )}
 

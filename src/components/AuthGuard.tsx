@@ -26,11 +26,15 @@ export function AuthGuard({ children, adminOnly = false }: AuthGuardProps) {
         const { data, error } = await supabase
           .from('admin_users')
           .select('*')
-          .eq('user_id', user.id);
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-        if (error) throw error;
-        // Check if there are any rows returned
-        setIsAdmin(data && data.length > 0);
+        if (error) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(!!data);
+        }
       } catch (error) {
         console.error('Error checking admin status:', error);
         setIsAdmin(false);
@@ -51,12 +55,26 @@ export function AuthGuard({ children, adminOnly = false }: AuthGuardProps) {
   }
 
   if (!user) {
-    // Save the attempted URL to redirect back after login
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (adminOnly && !isAdmin) {
-    return <Navigate to="/" replace />;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="max-w-md w-full text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h2>
+          <p className="text-gray-600 mb-6">
+            You don't have permission to access this area. Please contact an administrator if you believe this is an error.
+          </p>
+          <button
+            onClick={() => window.history.back()}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;

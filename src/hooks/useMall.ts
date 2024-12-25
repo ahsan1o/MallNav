@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase, handleSupabaseError } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Database } from '../types/database';
 
@@ -20,24 +20,25 @@ export function useMall() {
       }
 
       try {
+        setError(null);
         // First get the user's preferred mall ID
-        const profile = await handleSupabaseError(
-          supabase
-            .from('user_profiles')
-            .select('preferred_mall_id')
-            .eq('user_id', user.id)
-            .maybeSingle()
-        );
+        const { data: profile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('preferred_mall_id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (profileError) throw profileError;
 
         if (profile?.preferred_mall_id) {
           // Then fetch the mall details
-          const mall = await handleSupabaseError(
-            supabase
-              .from('malls')
-              .select('*')
-              .eq('id', profile.preferred_mall_id)
-              .single()
-          );
+          const { data: mall, error: mallError } = await supabase
+            .from('malls')
+            .select('*')
+            .eq('id', profile.preferred_mall_id)
+            .single();
+
+          if (mallError) throw mallError;
           setCurrentMall(mall);
         } else {
           setCurrentMall(null);

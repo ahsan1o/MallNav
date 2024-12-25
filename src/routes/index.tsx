@@ -17,6 +17,9 @@ import { Notifications } from '../pages/Notifications';
 import { AdminLogin } from '../pages/admin/AdminLogin';
 import { AdminDashboard } from '../pages/admin/AdminDashboard';
 import { LocationManager } from '../pages/admin/LocationManager';
+import { AddMall } from '../pages/admin/AddMall';
+import { AddShop } from '../pages/admin/AddShop';
+import { AddPromotion } from '../pages/admin/AddPromotion';
 
 export function AppRoutes() {
   return (
@@ -27,11 +30,12 @@ export function AppRoutes() {
       <Route path="/admin/login" element={<AdminLogin />} />
 
       {/* Protected admin routes */}
-      <Route path="/admin" element={<AuthGuard adminOnly><AdminDashboard /></AuthGuard>}>
-        <Route index element={<Navigate to="/admin/dashboard" replace />} />
-        <Route path="dashboard" element={<AdminDashboard />} />
-        <Route path="location" element={<LocationManager />} />
-      </Route>
+      <Route path="/admin" element={<AuthGuard adminOnly><AdminDashboard /></AuthGuard>} />
+      <Route path="/admin/dashboard" element={<AuthGuard adminOnly><AdminDashboard /></AuthGuard>} />
+      <Route path="/admin/location" element={<AuthGuard adminOnly><LocationManager /></AuthGuard>} />
+      <Route path="/admin/malls/new" element={<AuthGuard adminOnly><AddMall /></AuthGuard>} />
+      <Route path="/admin/shops/new" element={<AuthGuard adminOnly><AddShop /></AuthGuard>} />
+      <Route path="/admin/promotions/new" element={<AuthGuard adminOnly><AddPromotion /></AuthGuard>} />
 
       {/* Protected user routes */}
       <Route element={<Layout />}>

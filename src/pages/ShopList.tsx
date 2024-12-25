@@ -6,10 +6,11 @@ import { useTopPromotion } from '../hooks/useTopPromotion';
 import { PromotionalBanner } from '../components/PromotionalBanner';
 import { Search, Filter, Building2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { ErrorDisplay } from '../components/ErrorDisplay';
 
 export function ShopList() {
-  const { currentMall } = useMall();
-  const { shops, loading: shopsLoading, error } = useMallShops(currentMall?.id ?? null);
+  const { currentMall, error: mallError } = useMall();
+  const { shops, loading: shopsLoading, error: shopsError } = useMallShops(currentMall?.id ?? null);
   const { topPromotion, loading: promoLoading } = useTopPromotion(currentMall?.id ?? null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -42,16 +43,11 @@ export function ShopList() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-red-600">Error loading shops. Please try again later.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {mallError && <ErrorDisplay error={mallError} className="mb-6" />}
+      {shopsError && <ErrorDisplay error={shopsError} className="mb-6" />}
+
       {topPromotion && !promoLoading && (
         <PromotionalBanner promotion={topPromotion} />
       )}

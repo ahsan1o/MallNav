@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Building2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchMalls, updatePreferredMall } from '../lib/api/malls';
+import { ErrorDisplay } from '../components/ErrorDisplay';
 import type { Database } from '../types/database';
 
 type Mall = Database['public']['Tables']['malls']['Row'];
@@ -10,7 +11,7 @@ type Mall = Database['public']['Tables']['malls']['Row'];
 export function MallSelection() {
   const [malls, setMalls] = useState<Mall[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
   const location = useLocation();
@@ -19,7 +20,7 @@ export function MallSelection() {
   useEffect(() => {
     async function loadMalls() {
       try {
-        setLoading(true);
+        setError(null);
         const data = await fetchMalls();
         setMalls(data);
 
@@ -27,7 +28,8 @@ export function MallSelection() {
           await handleMallSelect(qrMallId);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load malls');
+        console.error('Error loading malls:', err);
+        setError(err instanceof Error ? err : new Error('Failed to load malls'));
       } finally {
         setLoading(false);
       }
@@ -37,17 +39,19 @@ export function MallSelection() {
   }, [user, qrMallId]);
 
   const handleMallSelect = async (mallId: string) => {
-    if (!user) {
-      sessionStorage.setItem('selectedMallId', mallId);
-      navigate('/login', { state: { from: location } });
-      return;
-    }
-
     try {
+      setError(null);
+      if (!user) {
+        sessionStorage.setItem('selectedMallId', mallId);
+        navigate('/login', { state: { from: location } });
+        return;
+      }
+
       await updatePreferredMall(user.id, mallId);
       navigate('/shops');
     } catch (err) {
-      setError('Failed to update mall preference');
+      console.error('Error selecting mall:', err);
+      setError(err instanceof Error ? err : new Error('Failed to update mall preference'));
     }
   };
 
@@ -59,30 +63,15 @@ export function MallSelection() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center p-8">
-          <Building2 className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">Error Loading Malls</h2>
-          <p className="text-gray-500 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">
           Select Your Mall
         </h1>
+
+        {error && <ErrorDisplay error={error} className="mb-6" />}
+
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {malls.map((mall) => (
             <button

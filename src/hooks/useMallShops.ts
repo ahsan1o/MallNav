@@ -18,6 +18,7 @@ export function useMallShops(mallId: string | null) {
       }
 
       try {
+        setError(null);
         const { data, error: shopError } = await supabase
           .from('shops')
           .select(`
