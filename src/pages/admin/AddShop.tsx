@@ -59,6 +59,16 @@ export function AddShop() {
       setLoading(true);
       setError(null);
 
+      // First check if we have admin access
+      const { data: adminCheck, error: adminError } = await supabase
+        .from('admin_users')
+        .select('id')
+        .single();
+
+      if (adminError) {
+        throw new Error('You do not have permission to add shops');
+      }
+
       const { error: insertError } = await supabase
         .from('shops')
         .insert([
@@ -107,6 +117,7 @@ export function AddShop() {
               required
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             >
+              <option value="">Select a mall</option>
               {malls.map((mall) => (
                 <option key={mall.id} value={mall.id}>
                   {mall.name}

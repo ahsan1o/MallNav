@@ -49,6 +49,16 @@ export function AddPromotion() {
       setLoading(true);
       setError(null);
 
+      // First check if we have admin access
+      const { data: adminCheck, error: adminError } = await supabase
+        .from('admin_users')
+        .select('id')
+        .single();
+
+      if (adminError) {
+        throw new Error('You do not have permission to add promotions');
+      }
+
       const { error: insertError } = await supabase
         .from('promotions')
         .insert([
@@ -95,6 +105,7 @@ export function AddPromotion() {
               required
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             >
+              <option value="">Select a shop</option>
               {shops.map((shop) => (
                 <option key={shop.id} value={shop.id}>
                   {shop.name}
